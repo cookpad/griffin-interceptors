@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'griffin/interceptors/call_stream'
+
 module Griffin
   module Interceptors
     module Client
@@ -8,29 +10,21 @@ module Griffin
         # @param logger [Logger]
         # @param base_log [Hash<String,String>]
         def initialize(inner, logger, base_log = {}, filter = nil)
-          @inner = inner
+          super(inner)
           @logger = logger
           @filter = filter
           @base_log = base_log
         end
 
-        def send_msg(msg, **opts)
+        def send_msg(msg)
           @logger.info(@base_log.merge('grpc.request.content' => extract_content(msg)))
-          @inner.send_msg(msg, **opts)
+          super
         end
 
-        def recv(**opt)
-          @inner.recv(**opt).tap do |resp|
+        def recv
+          super.tap do |resp|
             @logger.info(@base_log.merge('grpc.response.content' => extract_content(resp)))
           end
-        end
-
-        def close_and_recv
-          @inner.close_and_recv
-        end
-
-        def close_and_send
-          @inner.close_and_send
         end
 
         private
