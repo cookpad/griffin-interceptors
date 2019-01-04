@@ -13,7 +13,7 @@ module Griffin
         Request = Struct.new(:path, :user_agent, :request_method)
 
         def request_response(method: nil, call: nil, **)
-          return yield if NewRelic::Agent.instance.started?
+          return yield unless NewRelic::Agent.instance.started?
 
           service_name = call.service_name
 
