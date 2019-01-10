@@ -29,9 +29,11 @@ module Griffin
           NewRelic::Agent::Transaction.start(state, :controller, transaction_name: "Controller/#{transaction_name}", request: req)
 
           begin
-            yield
+            resp = yield
             # gRPC alway returns HTTP status code 200
             state.current_transaction.http_response_code = '200'
+
+            resp
           rescue => e
             NewRelic::Agent::Transaction.notice_error(e)
             raise e
