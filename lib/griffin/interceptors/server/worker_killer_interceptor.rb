@@ -25,7 +25,7 @@ module Griffin
             if (@worker_check_count % @worker_check_cycle) == 0
               rss = GetProcessMem.new.bytes
               if rss > @worker_memory_limit
-                Griffin.logger.warn("Worker (pid: #{Process.pid}) exceeds memory limit (#{rss.to_f} bytes > #{@worker_memory_limit} bytes)")
+                Griffin.logger.warn("Worker (pid: #{Process.pid}) exceeds memory limit (#{rss.to_i} bytes > #{@worker_memory_limit} bytes)")
                 send_restart_signal(@worker_process_start)
               end
 
