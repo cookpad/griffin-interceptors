@@ -45,7 +45,7 @@ module Griffin
             'grpc.code' => '0', # OK
           }
 
-          if call.metadata['x-requst-id']
+          if call.metadata['x-request-id']
             log['grpc.x_request_id'] = call.metadata['x-request-id']
           end
 
