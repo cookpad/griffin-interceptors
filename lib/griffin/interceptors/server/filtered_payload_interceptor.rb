@@ -2,8 +2,8 @@
 
 require 'griffin/interceptors/server/payload_interceptor'
 
-# Check actionpack exists to use ActionDispatch::Http::ParameterFilter
-gem 'actionpack'
+# Check actionpack exists to use ActionDispatch::Http::ParameterFilter if needed
+gem 'actionpack' unless defined?(ActiveSupport::ParameterFilter)
 
 module Griffin
   module Interceptors
@@ -19,7 +19,13 @@ module Griffin
             end
           end
 
-          @parameter_filter = ActionDispatch::Http::ParameterFilter.new(@filters)
+          # ActionDispatch::Http::ParameterFilter is deprecated and will be removed from Rails 6.1.
+          parameter_filter_klass = if defined?(ActiveSupport::ParameterFilter)
+              ActiveSupport::ParameterFilter
+            else
+              ActionDispatch::Http::ParameterFilter
+            end
+          @parameter_filter = parameter_filter_klass.new(@filters)
         end
 
         def server_streamer(call: nil, **)
