@@ -20,25 +20,30 @@ module Griffin
           return yield if @ignored_services.include?(service_name)
 
           transaction_name = build_transaction_name(service_name, method.name)
-          state = NewRelic::Agent::TransactionState.tl_get
 
           # gRPC's HTTP method is fixed. https://github.com/grpc/grpc/blob/af89e8c00e796f3398b09b7daed693df2b14da56/doc/PROTOCOL-HTTP2.md
           req = Request.new("/#{transaction_name}", call.metadata['user-agent'], 'POST')
           # ":controller" is not correct category name for gRPC, But since we want to categorized this transaction as web transactions.
           # https://docs.newrelic.com/docs/apm/transactions/key-transactions/introduction-key-transactions
-          NewRelic::Agent::Transaction.start(state, :controller, transaction_name: "Controller/#{transaction_name}", request: req)
+          finishable = NewRelic::Agent::Tracer.start_transaction_or_segment(
+            name: "Controller/#{transaction_name}",
+            category: :controller,
+            options: {
+              request: req
+            }
+          )
 
           begin
             resp = yield
             # gRPC alway returns HTTP status code 200
-            state.current_transaction.http_response_code = '200'
+            NewRelic::Agent::Tracer.current_transaction.http_response_code = '200'
 
             resp
           rescue => e
-            NewRelic::Agent::Transaction.notice_error(e)
+            NewRelic::Agent::Tracer.current_transaction.notice_error(e)
             raise e
           ensure
-            NewRelic::Agent::Transaction.stop(state)
+            finishable.finish if finishable
           end
         end
 
