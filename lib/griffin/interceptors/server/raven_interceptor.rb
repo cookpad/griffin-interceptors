@@ -17,6 +17,9 @@ module Griffin
 
             raise GRPC::Unknown.new('Internal server error')
           end
+        ensure
+          Raven::Context.clear!
+          Raven::BreadcrumbBuffer.clear!
         end
 
         alias_method :server_streamer, :request_response
