@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-gem 'newrelic_rpm'
+gem 'newrelic_rpm', '>= 6.0.0'
 
 module Griffin
   module Interceptors
