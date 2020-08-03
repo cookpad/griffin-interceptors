@@ -40,7 +40,7 @@ module Griffin
 
             resp
           rescue => e
-            NewRelic::Agent::Tracer.current_transaction.notice_error(e)
+            NewRelic::Agent.notice_error(e)
             raise e
           ensure
             finishable.finish if finishable
