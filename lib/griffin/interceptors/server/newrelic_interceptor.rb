@@ -19,26 +19,14 @@ module Griffin
 
           return yield if @ignored_services.include?(service_name)
 
-          transaction_name = build_transaction_name(service_name, method.name)
-          state = NewRelic::Agent::TransactionState.tl_get
-
           # gRPC's HTTP method is fixed. https://github.com/grpc/grpc/blob/af89e8c00e796f3398b09b7daed693df2b14da56/doc/PROTOCOL-HTTP2.md
-          req = Request.new("/#{transaction_name}", call.metadata['user-agent'], 'POST')
-          # ":controller" is not correct category name for gRPC, But since we want to categorized this transaction as web transactions.
-          # https://docs.newrelic.com/docs/apm/transactions/key-transactions/introduction-key-transactions
-          NewRelic::Agent::Transaction.start(state, :controller, transaction_name: "Controller/#{transaction_name}", request: req)
+          request = Request.new("/#{service_name}/#{method.name}", call.metadata['user-agent'], 'POST')
 
-          begin
-            resp = yield
-            # gRPC alway returns HTTP status code 200
-            state.current_transaction.http_response_code = '200'
-
-            resp
-          rescue => e
-            NewRelic::Agent::Transaction.notice_error(e)
-            raise e
-          ensure
-            NewRelic::Agent::Transaction.stop(state)
+          in_transaction("#{service_name}/#{method.name}", request) do |txn|
+            yield.tap do
+              # gRPC always returns HTTP status code 200.
+              txn.http_response_code = '200'
+            end
           end
         end
 
@@ -46,8 +34,21 @@ module Griffin
 
         private
 
-        def build_transaction_name(service, mthd)
-          "#{service}/#{mthd}"
+        if Gem::Version.new(NewRelic::VERSION::STRING) >= Gem::Version.new('6.0.0')
+          def in_transaction(partial_name, request)
+            NewRelic::Agent::Tracer.in_transaction(partial_name: partial_name, category: :web, options: { request: request }) do
+              yield NewRelic::Agent::Tracer.current_transaction
+            end
+          end
+        else
+          def in_transaction(partial_name, request)
+            state = NewRelic::Agent::TransactionState.tl_get
+            # Specify the controller category so that the transaction gets categorized as a web transaction.
+            # See https://github.com/newrelic/newrelic-ruby-agent/blob/5.7.0.350/lib/new_relic/agent/transaction.rb#L39.
+            NewRelic::Agent::Transaction.wrap(state, "Controller/#{partial_name}", :controller, request: request) do
+              yield state.current_transaction
+            end
+          end
         end
       end
     end
