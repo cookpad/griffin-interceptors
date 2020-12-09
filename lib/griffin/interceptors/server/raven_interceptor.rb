@@ -6,7 +6,11 @@ module Griffin
   module Interceptors
     module Server
       class RavenInterceptor < GRPC::ServerInterceptor
-        def request_response(*)
+        def request_response(call: nil, **)
+          if call.metadata['x-request-id']
+            Raven.tags_context(request_id: call.metadata['x-request-id'])
+          end
+
           begin
             yield
           rescue => e
