@@ -29,7 +29,7 @@ module Griffin
               end
 
               begin
-                yield
+                response = yield
               rescue => e
                 if e.is_a?(GRPC::BadStatus)
                   finish_transaction(transaction, e.code)
@@ -41,9 +41,11 @@ module Griffin
                 Sentry.capture_exception(e)
 
                 raise GRPC::Unknown.new("Internal server error")
-              ensure
-                finish_transaction(transaction, GrpcKit::StatusCodes::OK)
               end
+
+              finish_transaction(transaction, GrpcKit::StatusCodes::OK)
+
+              response
             end
           end
         end
