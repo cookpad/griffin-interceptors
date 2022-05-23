@@ -1,5 +1,5 @@
 module Griffin
   module Interceptors
-    VERSION = '0.1.11'.freeze
+    VERSION = '0.2.0'.freeze
   end
 end
